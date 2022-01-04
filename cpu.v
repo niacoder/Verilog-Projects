@@ -1,5 +1,6 @@
 `timescale 1ns / 1ps
 
+// define functions names for readability (uses 4-bit control line values)
 `define OP_LDUR (4'b0010)
 `define OP_STUR (4'b0010)
 `define OP_CBZ (4'b0111)
@@ -8,13 +9,17 @@
 `define OP_AND (4'b0000)
 `define OP_ORR (4'b0001)
 
-
+// define cpu module
 module cpu(
+    
+    // define clk and reset as inputs
     input clk,
     input reset,
 
-    input [63:0] read_data,
-    input [31:0] ins_reg,
+    input [63:0] read_data, // output from data_RAM acts as input for cpu
+    input [31:0] ins_reg,   // output from ins_RAM acta as input for cpu
+    
+    // define outputs which will act as inputs for data_RAM and ins_RAM 
     output reg MemWrite,
     output reg ALU_zeroflag,
     output [63:0] mem_addr,
@@ -22,19 +27,20 @@ module cpu(
     output reg [4:0] read_addr
     );
   
-  reg [63:0] regfile [0:31]; //register file array
-  reg [63:0] ins_file [0:31]; //instruction file array
+    reg [63:0] regfile [0:31]; // register file array
+    reg [63:0] ins_file [0:31]; // instruction file array
   
-  wire [63:0] regfile_data1;
-  wire [63:0] regfile_data2;
+    // define wires for data1 and data2 of register file from ARM datapath  
+    wire [63:0] regfile_data1;
+    wire [63:0] regfile_data2;
 
-  wire [63:0] write_back; //write back from data RAM to register file
+    wire [63:0] write_back; // write back from data RAM to register file
   
- reg [3:0] ALU_CTRL;
+    reg [3:0] ALU_CTRL; // define 4-bit ALU control line
  
- wire [10:0] opcode;
+    wire [10:0] opcode; // define 11-bits for opcode (R-Type only)
  
-  // define control lines
+  // define control lines from ARM datapath
   reg Reg2Loc;
   reg Branch;
   reg un_Branch;
@@ -57,7 +63,7 @@ module cpu(
   assign regfile_data2 = Reg2Loc ? regfile[ins_reg[4:0]] : regfile[ins_reg[20:16]]; //mux for regfile_data2
   
 
-  
+  // write back process
   always @ (posedge clk)
      begin
         if (RegWrite)
@@ -150,17 +156,17 @@ module cpu(
                 ALUOp = 2'b01;
                 
                //ALU control for R-type depends on instruction
-               if (opcode == 11'b10001011000) //add
+                if (opcode == 11'b10001011000) // add
                   ALU_CTRL = 4'b0010;
-               else if (opcode == 11'b11001011000) //sub
+                else if (opcode == 11'b11001011000) // sub
                   ALU_CTRL = 4'b0110;
-               else if (opcode == 11'b10001010000) //and
+                else if (opcode == 11'b10001010000) // and
                   ALU_CTRL = 4'b0000;
-               else if (opcode == 11'b10101010000) //orr
+                else if (opcode == 11'b10101010000) // orr
                   ALU_CTRL = 4'b0001;
            
             end
-        else if(ins_reg[31:21] == 11'b11111000010) //LDUR case
+        else if(ins_reg[31:21] == 11'b11111000010) // LDUR case
             begin
                 ALUSrc = 1;
                 MemtoReg = 1;
@@ -173,7 +179,7 @@ module cpu(
                 ALU_CTRL = 4'b0010;
             end
             
-        else if(ins_reg[31:21] == 11'b11111000000) //STUR case
+        else if(ins_reg[31:21] == 11'b11111000000) // STUR case
             begin
                 Reg2Loc = 1;
                 ALUSrc = 1;
@@ -186,7 +192,7 @@ module cpu(
                 ALU_CTRL <= 4'b0010;
             end
             
-        else if(ins_reg[31:24] == 8'b10110100) //CBZ case
+        else if(ins_reg[31:24] == 8'b10110100) // CBZ case
              begin
                 Reg2Loc = 1;
                 ALUSrc = 0;
@@ -199,7 +205,7 @@ module cpu(
                 ALU_CTRL = 4'b0111;
              end
    
-         else if(ins_reg[31:26] == 6'b000101) //Unconditional Branch case
+        else if(ins_reg[31:26] == 6'b000101) // Unconditional Branch case
              begin
                   un_Branch = 1;
             
@@ -212,14 +218,14 @@ module cpu(
         end
     end
     
-    //assign data_mux = MemtoReg ? read_data : ALU_result; // data ram internal process
-    assign write_back = MemtoReg ? read_data : ALU_result; //set write_back to data_mux result
     
-    //define PC variables
+    assign write_back = MemtoReg ? read_data : ALU_result; // set write_back to data_mux result
+    
+    // define PC variables
     reg [4:0] PC;
     reg [4:0] nextPC;
 
- //assign nextPC according to logic gates from datapath
+ // assign nextPC according to logic gates from datapath
  always @ (*)
     begin
         if ((un_Branch | (Branch & ALU_zeroflag)))
@@ -232,23 +238,21 @@ module cpu(
     //PC block
     always @ (posedge clk)
        begin
-          if (reset) //at reset PC gets 0
+           if (reset) // at reset PC gets 0
              begin
                 PC <= 0;
              end
           else
              begin
-                PC <= nextPC; //else PC gets nextPC
+                PC <= nextPC; // else PC gets nextPC
              end
        end
      
 
-//assign mem_addr = ALU_result; //assign mem_addr to ALU_result
-
-assign write_data = regfile_data2; //assign write_data to regfile_data2 to go into data_RAM
+assign write_data = regfile_data2; // assign write_data to regfile_data2 to go into data_RAM
 
 
-//instantiate data RAM module
+// instantiate data RAM module
     data_RAM dataRam(
     .clk(clk),
     .reset(reset),
@@ -259,7 +263,7 @@ assign write_data = regfile_data2; //assign write_data to regfile_data2 to go in
     .MemRead(MemRead)
     );
 
-//instantiate ins RAM module
+// instantiate ins RAM module
     ins_RAM insRam(
     .read_addr(PC),
     .ins_reg(ins_reg)
