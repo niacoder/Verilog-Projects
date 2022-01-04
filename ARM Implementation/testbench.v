@@ -34,7 +34,7 @@ initial
 initial
     begin
 $readmemb("H:/Lab5/Lab5.srcs/sources_1/imports/Desktop/ins_reg.txt", john.insRam.ins_file);
-// $readmemh("C:\Users\harishn2\Desktop\data_file.txt", georgia.ins_file);
+
 $readmemh("H:/Lab5/Lab5.srcs/sources_1/imports/Desktop/reg_file.txt", john.regfile);
     end
     
