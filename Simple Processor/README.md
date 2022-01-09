@@ -15,3 +15,7 @@ Processor implements the following instructions:
   - INCA: Increment accumulator
   - STA: Store and clear accumulator
   - LDA: Load accumulator
+
+**Note: data_file.txt is a text file containing a set of test instructions in HEX format which is read into the testbench in order to produce simulation results
+
+
